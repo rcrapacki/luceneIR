@@ -13,6 +13,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
+import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
@@ -39,14 +40,14 @@ public class HelloLucene {
     w.close();
 
     // 2. query
-    String querystr = args.length > 0 ? args[0] : "copa";
+    String querystr = args.length > 0 ? args[0] : "Copa";
 
     // the "title" arg specifies the default field to use
     // when no field is explicitly specified in the query.
     Query q = new QueryParser( "text", analyzer).parse(querystr);
 
     // 3. search
-    int hitsPerPage = 10;
+    int hitsPerPage = 200;
     IndexReader reader = DirectoryReader.open(index);
     IndexSearcher searcher = new IndexSearcher(reader);
     TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
