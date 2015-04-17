@@ -24,13 +24,24 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.en.PorterStemFilter;
+import org.apache.lucene.analysis.es.SpanishAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.util.CharArraySet;
 
 public class HelloLucene {
-	
-	private final static String DOCUMENT_PATH = "/home/rcrapacki/Downloads/efe";
-	private final static String QUERY_PATH = "/home/rcrapacki/Downloads/Consultas.txt";
+	private final static String CONTENTS="contents";
+        private static CharArraySet stopSet;
+	private final static String DOCUMENT_PATH = "C:/Users/Raul/Downloads/efe94/efe2";
+	private final static String QUERY_PATH = "C:/Users/Raul/Downloads/Consultas/Consultas.txt";
 	
 	public static void main(String[] args) throws IOException, ParseException {
+            
+            CreatStopWordsList();
+                                       
 	    // 0. Specify the analyzer for tokenizing text.
 	    //    The same analyzer should be used for indexing and searching
 	    StandardAnalyzer analyzer = new StandardAnalyzer();
@@ -60,9 +71,11 @@ public class HelloLucene {
 		    int hitsPerPage = 100;
 		    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 		    
-	    	String queryStr = query.getESTitle();
-	    	
-	    	// the "title" arg specifies the default field to use
+                    String queryStr = query.getESTitle();
+                    
+                  //  TokenSteamStopWords(query.getESTitle());
+                                         
+                    // the "title" arg specifies the default field to use
 		    // when no field is explicitly specified in the query.
 		    Query q = new QueryParser( "text", analyzer).parse(queryStr);
 		
@@ -106,12 +119,38 @@ public class HelloLucene {
 		    // use a string field for path because we don't want it tokenized
 			document.add(new StringField("path", path, Field.Store.YES));
 			
-			document.add(new TextField("text", saxDocument.getText(), Field.Store.YES));
+			document.add(new TextField("text", saxDocument.getText(), Field.Store.YES));                      
+                       
+                        TokenSteamStopWords(saxDocument.getText());
+ 
 			document.add(new TextField("title", saxDocument.getTitle(), Field.Store.YES));
 			document.add(new TextField("docno", saxDocument.getDocNo(), Field.Store.YES));
 
 			w.addDocument(document);
 		}
 	}
+  }
+  
+  private static void TokenSteamStopWords(String text) throws IOException{
+      //Tokenizing and getting stopwords
+      Analyzer analyzer = new SpanishAnalyzer(); // Spanish Analyzer
+      System.out.println(text); //testar a saída da string
+      TokenStream tokenStream   = analyzer.tokenStream(CONTENTS, text);            
+      tokenStream = new StopFilter(tokenStream, stopSet); // Stopwords
+      tokenStream = new PorterStemFilter(tokenStream); // Steaming            
+      //display string tokenized without stopwords     
+      tokenStream.reset();
+      CharTermAttribute cattr = tokenStream.addAttribute(CharTermAttribute.class);
+     // TextField field = new TextField("text", tokenStream);
+      while (tokenStream.incrementToken()) {
+          System.out.println(cattr.toString());
+         // Document document = new Document();
+         // document.add(new TextField("text", cattr.toString(), Field.Store.YES));
+      }         
+  }
+  
+  private static void CreatStopWordsList(){
+      stopSet = CharArraySet.copy(StandardAnalyzer.STOP_WORDS_SET);
+      stopSet.add("afirm");
   }
 }
