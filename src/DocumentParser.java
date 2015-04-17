@@ -17,7 +17,7 @@ public class DocumentParser {
 	}
 	
 	public List<SaxDocument> parseDocument(File file) throws IOException {
-		Document parsedSgml = Jsoup.parse(file, "UTF-8");
+		Document parsedSgml = Jsoup.parse(file, "ISO-8859-1");
 		List<SaxDocument> documentList = new ArrayList<SaxDocument>();
 	    
 	    int count = 0;
