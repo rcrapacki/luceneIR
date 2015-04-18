@@ -19,11 +19,18 @@ import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
 import org.jsoup.Jsoup;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.util.List;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilter;
@@ -35,8 +42,9 @@ import org.apache.lucene.analysis.util.CharArraySet;
 public class HelloLucene {
 	private final static String CONTENTS="contents";
     private static CharArraySet stopSet;
-	private final static String DOCUMENT_PATH = "/home/rcrapacki/Downloads/efe/";
-	private final static String QUERY_PATH = "/home/rcrapacki/Downloads/Consultas.txt";
+	private final static String DOCUMENT_PATH = "C:\\Users\\raul.barth\\Downloads\\efe94\\efe2\\";
+	private final static String QUERY_PATH = "C:\\Users\\raul.barth\\Downloads\\Consultas\\Consultas.txt";
+	private final static String OUTPUT_PATH = "C:\\Users\\raul.barth\\Downloads\\LuceneResult.txt";
 	
 	public static void main(String[] args) throws IOException, ParseException {
             
@@ -67,6 +75,7 @@ public class HelloLucene {
 	    
 	    int queryCount = 1;
 	    
+	    Writer fileWriter = null;
 	    for (TextQuery query: queries) {
 		    int hitsPerPage = 100;
 		    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
@@ -83,13 +92,30 @@ public class HelloLucene {
 		    ScoreDoc[] hits = collector.topDocs().scoreDocs;
 		   
 		    // 4. display results
-		    System.out.println("Found " + hits.length + " hits in " + query.getNum() );
+			  try {
+				  fileWriter = new BufferedWriter(new OutputStreamWriter(
+			            new FileOutputStream(OUTPUT_PATH), "utf-8"));
+			  } catch (IOException ex) {
+			    // report
+			  }	    	    
+			fileWriter.append("\n\n"+"Found " + hits.length + " hits in " + query.getNum());
+		    
+			System.out.println("Found " + hits.length + " hits in " + query.getNum() );	    
 		    for(int i=0;i<hits.length;++i) {
 		      int docId = hits[i].doc;
 		      float docScore = hits[i].score;
 		      
 		      Document d = searcher.doc(docId);
 		      System.out.println(queryCount +
+		    		  "	Q0	" +
+		    		  d.get("docno") +
+		    		  "	" +
+		    		  i + 
+		    		  "	" +
+		    		  docScore +
+		    		  " ricardo e raul");
+		      
+		      fileWriter.append("\n"+queryCount +
 		    		  "	Q0	" +
 		    		  d.get("docno") +
 		    		  "	" +
@@ -104,6 +130,7 @@ public class HelloLucene {
 	    // reader can only be closed when there
 	    // is no need to access the documents any more.
 	    reader.close();
+	    fileWriter.close();
   }
 
   private static void addDocCollection(IndexWriter w, DocumentParser docParser) throws IOException {    
@@ -156,4 +183,6 @@ public class HelloLucene {
   private static void creatStopWordsList(){
       stopSet = CharArraySet.copy(SpanishAnalyzer.getDefaultStopSet());
   }
+  
+
 }
