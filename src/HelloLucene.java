@@ -1,4 +1,4 @@
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -13,21 +13,14 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
-import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Version;
-import org.jsoup.Jsoup;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.util.List;
 
@@ -42,21 +35,28 @@ import org.apache.lucene.analysis.util.CharArraySet;
 public class HelloLucene {
 	private final static String CONTENTS="contents";
     private static CharArraySet stopSet;
-	private final static String DOCUMENT_PATH = "C:\\Users\\raul.barth\\Downloads\\efe94\\efe2\\";
-	private final static String QUERY_PATH = "C:\\Users\\raul.barth\\Downloads\\Consultas\\Consultas.txt";
-	private final static String OUTPUT_PATH = "C:\\Users\\raul.barth\\Downloads\\LuceneResult.txt";
+	private static String documentPath = "C:\\Users\\raul.barth\\Downloads\\efe94\\efe2\\";
+	private static String queryPath = "C:\\Users\\raul.barth\\Downloads\\Consultas\\Consultas.txt";
+	private static String outputPath = "C:\\Users\\raul.barth\\Downloads\\LuceneResult.txt";
 	
 	public static void main(String[] args) throws IOException, ParseException {
+		
+		if (args.length < 3) {
+			System.out.println("Para executar a aplicaçao," +
+					" é necessario passar tres argumentos: documentPath, queryPath e outputPath.");
+			System.exit(1);
+		}
+		
+		documentPath = args[0];
+		queryPath = args[1];
+		outputPath = args[2];
             
-        creatStopWordsList();
+		createStopWordsList();
                                        
-	    // 0. Specify the analyzer for tokenizing text.
-	    //    The same analyzer should be used for indexing and searching
 	    SpanishAnalyzer analyzer = new SpanishAnalyzer();
 	
 	    // 1. create the index
-	    Directory index = new RAMDirectory();
-	
+	    Directory index = new RAMDirectory();	
 	    IndexWriterConfig config = new IndexWriterConfig( analyzer);
 	
 	    IndexWriter w = new IndexWriter(index, config);
@@ -64,11 +64,8 @@ public class HelloLucene {
 	    addDocCollection(w, docParser);    
 	    w.close();
 	    
-	    File queryFile = new File(QUERY_PATH); 
+	    File queryFile = new File(queryPath); 
 	    List<TextQuery> queries = docParser.parseQueries(queryFile);
-	
-	    // 2. query
-	    //String queryStr = args.length > 0 ? args[0] : "Copa";
 	    
 	    IndexReader reader = DirectoryReader.open(index);
 	    IndexSearcher searcher = new IndexSearcher(reader);
@@ -76,30 +73,32 @@ public class HelloLucene {
 	    int queryCount = 1;
 	    
 	    Writer fileWriter = null;
+	    
+	    try 
+		{
+			fileWriter = new BufferedWriter(new OutputStreamWriter(
+		            new FileOutputStream(outputPath), "utf-8"));
+		} 
+		catch (IOException ex) {
+		    System.out.println("Arquivo de saida nao pode ser criado! " +
+		    		"Sistema ira somente printar os resultados no console.");
+		}
+	    
 	    for (TextQuery query: queries) {
 		    int hitsPerPage = 100;
 		    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 		    
             String queryStr = tokenizeText(query.getESTitle());
                                  
-            // the "title" arg specifies the default field to use
+            // the "text" arg specifies the default field to use
 		    // when no field is explicitly specified in the query.
 		    Query q = new QueryParser("text", analyzer).parse(queryStr);
 		
-		    // 3. search
-
+		    // search
 		    searcher.search(q, collector);
 		    ScoreDoc[] hits = collector.topDocs().scoreDocs;
 		   
-		    // 4. display results
-			  try {
-				  fileWriter = new BufferedWriter(new OutputStreamWriter(
-			            new FileOutputStream(OUTPUT_PATH), "utf-8"));
-			  } catch (IOException ex) {
-			    // report
-			  }	    	    
-			fileWriter.append("\n\n"+"Found " + hits.length + " hits in " + query.getNum());
-		    
+		    // display results		    
 			System.out.println("Found " + hits.length + " hits in " + query.getNum() );	    
 		    for(int i=0;i<hits.length;++i) {
 		      int docId = hits[i].doc;
@@ -113,28 +112,37 @@ public class HelloLucene {
 		    		  i + 
 		    		  "	" +
 		    		  docScore +
-		    		  " ricardo e raul");
+		    		  "	ricardo e raul");
 		      
-		      fileWriter.append("\n"+queryCount +
-		    		  "	Q0	" +
-		    		  d.get("docno") +
-		    		  "	" +
-		    		  i + 
-		    		  "	" +
-		    		  docScore +
-		    		  " ricardo e raul");
+		      if (fileWriter != null) {
+		    	  // if it isn't the first line in the file, print new line
+		    	  if(queryCount != 1 || i != 0) {
+		    		  fileWriter.append("\n");
+		    	  }
+		    	  
+		    	  fileWriter.append(queryCount +
+			    		  "	Q0	" +
+			    		  d.get("docno") +
+			    		  "	" +
+			    		  i + 
+			    		  "	" +
+			    		  Float.toString(docScore) +
+			    		  "	" +
+			    		  "ricardo e raul");
+		      }
+		      
 		    }
 		    queryCount++;
 	    }
-	
-	    // reader can only be closed when there
-	    // is no need to access the documents any more.
 	    reader.close();
-	    fileWriter.close();
+	    
+	    if (fileWriter != null) {
+		    fileWriter.close();
+	    }
   }
 
   private static void addDocCollection(IndexWriter w, DocumentParser docParser) throws IOException {    
-    File dir = new File(DOCUMENT_PATH); 
+    File dir = new File(documentPath); 
     File[] files = dir.listFiles();
 	for (File file : files) {		
 		for (SaxDocument saxDocument : docParser.parseDocument(file)) {
@@ -180,9 +188,7 @@ public class HelloLucene {
 	  return tokenizedText;
   }
   
-  private static void creatStopWordsList(){
+  private static void createStopWordsList(){
       stopSet = CharArraySet.copy(SpanishAnalyzer.getDefaultStopSet());
   }
-  
-
 }
