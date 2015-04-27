@@ -21,19 +21,25 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.StringReader;
 import java.io.Writer;
 import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.StopFilter;
 import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.es.SpanishAnalyzer;
+import org.apache.lucene.analysis.es.SpanishLightStemFilter;
+import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilter;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 
 public class HelloLucene {
-	private final static String CONTENTS="contents";
+	private final static String TEXT="text";
     private static CharArraySet stopSet;
 	private static String documentPath = "C:\\Users\\raul.barth\\Downloads\\efe94\\efe2\\";
 	private static String queryPath = "C:\\Users\\raul.barth\\Downloads\\Consultas\\Consultas.txt";
@@ -169,13 +175,13 @@ public class HelloLucene {
 	  
 	  //System.out.println(text); //testar a saída da string
 	  
-	  TokenStream tokenStream   = analyzer.tokenStream(CONTENTS, text);  
-	  
-	  tokenStream = new StopFilter(tokenStream, stopSet); // Stopwords
-	  tokenStream = new PorterStemFilter(tokenStream); // Steaming            
-	  //display string tokenized without stopwords    
-	  
+	  TokenStream tokenStream   = analyzer.tokenStream(TEXT, text);
 	  tokenStream.reset();
+	  
+	  tokenStream = new LowerCaseFilter(tokenStream);
+	  tokenStream = new ASCIIFoldingFilter(tokenStream);
+	  tokenStream = new StopFilter(tokenStream, stopSet); // Stopwords
+	  tokenStream = new SpanishLightStemFilter(tokenStream); // Steaming
 	  
 	  CharTermAttribute cattr = tokenStream.addAttribute(CharTermAttribute.class);
 	  while (tokenStream.incrementToken()) {
@@ -185,6 +191,7 @@ public class HelloLucene {
 	  
 	  tokenStream.end();
 	  tokenStream.close();
+	  analyzer.close();
 	  return tokenizedText;
   }
   
