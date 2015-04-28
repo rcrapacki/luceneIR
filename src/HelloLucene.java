@@ -94,7 +94,7 @@ public class HelloLucene {
 		    int hitsPerPage = 100;
 		    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 		    
-            String queryStr = tokenizeText(query.getESTitle());
+            String queryStr = tokenizeText(query.getESNarr());
                                  
             // the "text" arg specifies the default field to use
 		    // when no field is explicitly specified in the query.
