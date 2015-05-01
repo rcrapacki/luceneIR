@@ -94,31 +94,32 @@ public class HelloLucene {
 		    int hitsPerPage = 100;
 		    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 		    
-            String queryStr = tokenizeText(query.getESNarr());
+            String queryStr = tokenizeText("content", query.getESDesc() + " " + query.getESNarr());
                                  
             // the "text" arg specifies the default field to use
 		    // when no field is explicitly specified in the query.
-		    Query q = new QueryParser("text", analyzer).parse(queryStr);
+		    Query q = new QueryParser("content", analyzer).parse(queryStr);
 		
 		    // search
 		    searcher.search(q, collector);
 		    ScoreDoc[] hits = collector.topDocs().scoreDocs;
 		   
-		    // display results		    
-			System.out.println("Found " + hits.length + " hits in " + query.getNum() );	    
+		    // display results
+			String queryNum = query.getNum().substring(1);
+			
 		    for(int i=0;i<hits.length;++i) {
 		      int docId = hits[i].doc;
 		      float docScore = hits[i].score;
 		      
 		      Document d = searcher.doc(docId);
-		      System.out.println(queryCount +
+		      System.out.println(queryNum +
 		    		  "	Q0	" +
 		    		  d.get("docno") +
 		    		  "	" +
 		    		  i + 
 		    		  "	" +
 		    		  docScore +
-		    		  "	ricardo e raul");
+		    		  "	Ricardo e Raul");
 		      
 		      if (fileWriter != null) {
 		    	  // if it isn't the first line in the file, print new line
@@ -126,7 +127,7 @@ public class HelloLucene {
 		    		  fileWriter.append("\n");
 		    	  }
 		    	  
-		    	  fileWriter.append(queryCount +
+		    	  fileWriter.append(queryNum +
 			    		  "	Q0	" +
 			    		  d.get("docno") +
 			    		  "	" +
@@ -134,7 +135,7 @@ public class HelloLucene {
 			    		  "	" +
 			    		  Float.toString(docScore) +
 			    		  "	" +
-			    		  "ricardo e raul");
+			    		  "Ricardo e Raul");
 		      }
 		      
 		    }
@@ -156,12 +157,17 @@ public class HelloLucene {
 
 			String path = file.getCanonicalPath();
 		    // use a string field for path because we don't want it tokenized
-			document.add(new StringField("path", path, Field.Store.YES));
+			document.add(new StringField("path", path, Field.Store.NO));
 			
-			document.add(new TextField("text", tokenizeText(saxDocument.getText()), Field.Store.YES));                      
- 
-			document.add(new TextField("title", saxDocument.getTitle(), Field.Store.YES));
-			document.add(new TextField("docno", saxDocument.getDocNo(), Field.Store.YES));
+			String tokenizedText = tokenizeText("text", saxDocument.getText());
+			String tokenizedTitle = tokenizeText("title", saxDocument.getTitle());
+			String searchableContent = tokenizedText + " " + tokenizedTitle;
+			
+			
+			document.add(new TextField("text", tokenizedText, Field.Store.YES));                      
+			document.add(new TextField("title", tokenizedTitle, Field.Store.YES));
+			document.add(new TextField("content", searchableContent, Field.Store.YES));
+			document.add(new StringField("docno", saxDocument.getDocNo(), Field.Store.YES));
 
 			w.addDocument(document);
 		}
@@ -169,13 +175,13 @@ public class HelloLucene {
   }
   
   //Tokenizing and filtering stopwords
-  private static String tokenizeText(String text) throws IOException{
+  private static String tokenizeText(String field, String text) throws IOException{
 	  String tokenizedText = "";
 	  Analyzer analyzer = new SpanishAnalyzer();
 	  
 	  //System.out.println(text); //testar a saída da string
 	  
-	  TokenStream tokenStream   = analyzer.tokenStream(TEXT, text);
+	  TokenStream tokenStream   = analyzer.tokenStream(field, text);
 	  tokenStream.reset();
 	  
 	  tokenStream = new LowerCaseFilter(tokenStream);

@@ -47,7 +47,7 @@ public class DocumentParser {
 	}
 	
 	public List<TextQuery> parseQueries(File file) throws IOException {
-		Document parsedSgml = Jsoup.parse(file, "UTF-8");
+		Document parsedSgml = Jsoup.parse(file, "ISO-8859-1");
 		List<TextQuery> queryList = new ArrayList<TextQuery>();
 	    
 	    int count = 0;
