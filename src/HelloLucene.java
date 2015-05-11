@@ -7,11 +7,15 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
@@ -39,7 +43,6 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 
 public class HelloLucene {
-	private final static String TEXT="text";
     private static CharArraySet stopSet;
 	private static String documentPath = "C:\\Users\\raul.barth\\Downloads\\efe94\\efe2\\";
 	private static String queryPath = "C:\\Users\\raul.barth\\Downloads\\Consultas\\Consultas.txt";
@@ -94,11 +97,9 @@ public class HelloLucene {
 		    int hitsPerPage = 100;
 		    TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 		    
-            String queryStr = tokenizeText("content", query.getESDesc() + " " + query.getESNarr());
-                                 
-            // the "text" arg specifies the default field to use
-		    // when no field is explicitly specified in the query.
-		    Query q = new QueryParser("content", analyzer).parse(queryStr);
+		    String queryTitle = tokenizeText("title", query.getESTitle());
+		    String queryContent = tokenizeText("content", query.getESDesc() + " " + query.getESNarr());
+		    Query q = buildQuery(queryTitle, queryContent);
 		
 		    // search
 		    searcher.search(q, collector);
@@ -199,6 +200,42 @@ public class HelloLucene {
 	  tokenStream.close();
 	  analyzer.close();
 	  return tokenizedText;
+  }
+  
+  private static BooleanQuery buildQuery(String title, String content) throws IOException {
+	  BooleanQuery titleQuery = new BooleanQuery();
+	  titleQuery.setBoost(2);
+	  BooleanQuery contentQuery = new BooleanQuery();
+	  Analyzer analyzer = new SpanishAnalyzer();
+	  
+	  TokenStream tokenStream = analyzer.tokenStream("content", title);
+	  tokenStream.reset();
+	  CharTermAttribute cattr = tokenStream.addAttribute(CharTermAttribute.class);
+	  
+	  while(tokenStream.incrementToken()) {
+		  titleQuery.add(new TermQuery(new Term("content", cattr.toString())), Occur.SHOULD);
+	  }
+	  
+	  tokenStream.end();
+	  tokenStream.close();
+	  
+	  tokenStream = analyzer.tokenStream("content", content);
+	  tokenStream.reset();
+	  cattr = tokenStream.addAttribute(CharTermAttribute.class);
+	  
+	  while(tokenStream.incrementToken()) {
+		  contentQuery.add(new TermQuery(new Term("content", cattr.toString())), Occur.SHOULD);
+	  }
+	  
+	  tokenStream.end();
+	  tokenStream.close();
+	  analyzer.close();
+	  
+	  BooleanQuery query = new BooleanQuery();
+	  query.add(titleQuery, Occur.SHOULD);
+	  query.add(contentQuery, Occur.SHOULD);
+	  
+	  return query;
   }
   
   private static void createStopWordsList(){
